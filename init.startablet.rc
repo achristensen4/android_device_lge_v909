@@ -2,7 +2,7 @@ import init.startablet.usb.rc
 
 on early-init
     mount debugfs debugfs /sys/kernel/debug
-    write /sys/class/firmware/timeout 5
+    write /sys/class/firmware/timeout 6
     # for backwards compatibility
     export EXTERNAL_STORAGE /mnt/sdcard
     mkdir /mnt/sdcard 0000 system system
@@ -12,7 +12,7 @@ on early-init
     mkdir /mnt/usbdisk 0000 system system
     symlink /mnt/usbdisk /usbdisk
 on fs
-    mount ext4 /dev/block/mmcblk0p1 /system wait ro
+    mount ext4 /dev/block/mmcblk0p1 /system wait rw
     setprop ro.crypto.tmpfs_options size=128m,mode=0771,uid=1000,gid=1000
     mount ext4 /dev/block/mmcblk0p4 /data wait noatime nosuid nodev
     mount ext4 /dev/block/mmcblk0p2 /cache wait noatime nosuid nodev
@@ -112,10 +112,10 @@ on boot
 # Power Management Settings
     write /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq 216000
     write /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq 1504000
-    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor interactive
+    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor powersave
     write /sys/devices/system/cpu/cpu1/cpufreq/scaling_min_freq 216000
     write /sys/devices/system/cpu/cpu1/cpufreq/scaling_max_freq 1504000
-    write /sys/devices/system/cpu/cpu1/cpufreq/scaling_governor interactive
+    write /sys/devices/system/cpu/cpu1/cpufreq/scaling_governor powersave
     write /sys/devices/system/cpu/cpufreq/interactive/go_maxspeed_load 80
 
 # AUDIO
@@ -126,16 +126,15 @@ on boot
     chown system system /sys/devices/platform/i2c-gpio.7/i2c-7/7-0060/fm31_reg
     chmod 660 /sys/devices/platform/i2c-gpio.7/i2c-7/7-0060/fm31_reg
 
-service wpa_supplicant /system/bin/wpa_supplicant \
-    -Dwext -ieth0 \
+service wpa_supplicant /system/bin/wpa_supplicant
+    -Dwext -ieth0
     -c/data/misc/wifi/wpa_supplicant.conf
 #   we will start as root and wpa_supplicant will switch to user wifi
 #   after setting up the capabilities required for WEXT
-#   user wifi
-#   group wifi inet keystore
+    user wifi
+    group wifi inet keystore
     class main
     socket wpa_eth0 dgram 660 wifi wifi
-    disabled
     oneshot
 
 service dhcpcd_eth0 /system/bin/dhcpcd -ABKL
@@ -148,12 +147,11 @@ service iprenew_eth0 /system/bin/dhcpcd -n
     disabled
     oneshot
 
-service hciattach /system/bin/brcm_patchram_plus_lge --enable_hci --enable_lpm --pcm_role slave  \
+service hciattach /system/bin/brcm_patchram_plus_lge --enable_hci --enable_lpm --pcm_role slave
     --baudrate 3000000 --patchram /system/etc/bluetooth/BCM4329B1_002.002.023.0875.0883.hcd  /dev/ttyHS2
     class main
     user bluetooth
     group bluetooth net_admin system
-    disabled
     oneshot
 
 # Initializing Bluetooth Address
@@ -164,44 +162,40 @@ service bdaddr_init /system/bin/bdaddr_init
 # blueset : DUT daemon
 service bluetoothhiddend /system/bin/bluetoothhiddend
     class main
-    disabled
     oneshot
 
 # Wi-Fi Hidden Menu daemon
 service wifihiddend /system/bin/wifihiddend
     class main
-    disabled
     oneshot
 
 # Gyro Sensor daemon
 service motion /system/bin/motion
-    class late_start
+    class main
     user system
     group system
 
 service sdcard /system/bin/sdcard /data/media 1023 1023
-    class late_start
+    class main
 
 # lgesystemd daemon
 service lgesystemd /system/bin/lgesystemd
-    class late_start
+    class main
 service eventd /system/bin/eventd
-    class late_start
+    class main
 # eta deamon (tmus only)
 service eta /system/bin/eta
-    class late_start
+    class main
 
 # bugreport is triggered by the VOLUME-DOWN and VOLUME-UP keys
 service bugreport /system/bin/dumpstate -d -v -o /mnt/sdcard/bugreports/bugreport
-    class late_start
-    disabled
+    class main
     oneshot
     keycodes 115 114
 
 # Logging service
 service log-kernel /system/bin/sh /etc/save_kernel_log.sh
-    class late_start
-    disabled
+    class main
     oneshot
 
 on property:persist.service.kernel.enable=1
@@ -211,13 +205,11 @@ on property:persist.service.kernel.enable=0
     stop log-kernel
 
 service clear-kernel-log /system/bin/clear-kernel-log
-    class late_start
-    disabled
+    class main
     oneshot
 
 service logcat-main /system/bin/logcat -v time -b main -f /mnt/sdcard/logger/main.log -n 4 -r 4096
-    class late_start
-    disabled
+    class main
     oneshot
 
 on property:persist.service.main.enable=1
@@ -227,8 +219,7 @@ on property:persist.service.main.enable=0
     stop logcat-main
 
 service logcat-system /system/bin/logcat -v time -b system -f /mnt/sdcard/logger/system.log -n 4 -r 4096
-    class late_start
-    disabled
+    class main
     oneshot
 
 on property:persist.service.system.enable=1
@@ -238,8 +229,7 @@ on property:persist.service.system.enable=0
     stop logcat-system
 
 service logcat-radio /system/bin/logcat -v time -b radio -f /mnt/sdcard/logger/radio.log -n 4 -r 4096
-    class late_start
-    disabled
+    class main
     oneshot
 
 on property:persist.service.radio.enable=1
@@ -249,8 +239,7 @@ on property:persist.service.radio.enable=0
     stop logcat-radio
 
 service logcat-events /system/bin/logcat -v time -b events -f /mnt/sdcard/logger/events.log -n 4 -r 4096
-    class late_start
-    disabled
+    class main
     oneshot
 
 on property:persist.service.events.enable=1
@@ -262,6 +251,6 @@ on property:persist.service.events.enable=0
 
 # Start RescueStarter for Rescue+Mobile (tmus only)
 service RescueStarter /system/bin/RescueStarter
-    class late_start
+    class main
     user root
     group input graphics
